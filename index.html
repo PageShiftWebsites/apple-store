@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SmartCheckout</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<style>
+:root{--bg:#f3f5fa;--card:#fff;--ink:#14213d;--mut:#667089;--ac:#2563eb;--ok:#16a34a;--bad:#dc2626;--bd:#dce2ee;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d1324;--card:#172039;--ink:#eef2ff;--mut:#9aa6c6;--ac:#6d9bff;--bd:#2a3556}}
+:root[data-theme="dark"]{--bg:#0d1324;--card:#172039;--ink:#eef2ff;--mut:#9aa6c6;--ac:#6d9bff;--bd:#2a3556}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+.kon nav{display:none}
+.hgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:20px}.hc{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:44px;padding:28px 16px}.hc b{font-size:20px}.hc small{font-size:14px;color:var(--mut)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+nav{display:flex;gap:14px;align-items:center;padding:10px 16px;background:var(--card);border-bottom:1px solid var(--bd);flex-wrap:wrap}
+nav b{margin-right:auto}nav a{color:var(--ink);text-decoration:none;font-weight:600;opacity:.8}
+#bdg{background:var(--bad);color:#fff;border-radius:99px;padding:0 7px;font-size:12px}
+.view{padding:16px;max-width:1100px;margin:0 auto}
+.kgrid{display:grid;grid-template-columns:1.1fr 1fr;gap:16px}
+@media(max-width:760px){.kgrid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:16px;margin-bottom:12px}
+.narrow{max-width:420px;margin:30px auto}.c{text-align:center}
+h1,h2,h3{margin:.2em 0 .4em}.mut,small{color:var(--mut)}
+button{font:inherit;font-weight:600;border:1px solid var(--bd);background:var(--card);color:var(--ink);border-radius:12px;padding:10px 14px;cursor:pointer;margin:3px 3px 3px 0}
+button.big{display:block;width:100%;background:var(--ac);color:#fff;border:0;padding:16px;font-size:20px;margin-top:10px}
+button.ok{background:var(--ok);color:#fff;border:0}button:disabled{opacity:.4}
+button.yn{font-size:22px;padding:18px 34px}
+input{font:inherit;width:100%;padding:12px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--ink);margin:6px 0}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;border-bottom:1px dashed var(--bd)}
+.tot{font-size:22px;border:0}
+.camwrap{position:relative;aspect-ratio:4/3;background:#000;border-radius:12px;overflow:hidden}
+.camwrap.sm{max-width:420px}.camwrap video,video.live{width:100%;height:100%;object-fit:cover;display:block;border-radius:12px;background:#000}
+.zone{position:absolute;left:50%;top:25%;height:50%;aspect-ratio:1;transform:translateX(-50%);border:3px dashed #fff;border-radius:14px;box-shadow:0 0 0 999px rgba(0,0,0,.25);pointer-events:none}
+#help,#pcb{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:50;background:var(--bad);color:#fff;border:0;border-radius:99px;padding:16px 22px;font-size:18px;box-shadow:0 6px 20px rgba(0,0,0,.3)}
+#attract,#lock,#fsb{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px}
+#pcb{left:16px;right:auto;background:var(--ac)}
+#fsb{background:#0d1324;color:#fff;z-index:60;cursor:pointer}
+#attract{background:linear-gradient(135deg,#1e3a8a,#7c3aed);color:#fff;animation:f 1s}
+#lock{background:rgba(10,15,30,.94);color:#fff;z-index:45}
+@keyframes f{from{opacity:0}to{opacity:1}}
+.slide img{max-height:50vh;max-width:80vw;border-radius:20px;background:#fff}.slide h1{font-size:clamp(32px,7vw,64px)}.slide h2{font-size:clamp(24px,5vw,40px);opacity:.9}
+.pulse{animation:p 1.4s infinite}@keyframes p{50%{opacity:.4}}
+#toast{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:10px 18px;border-radius:99px;z-index:99}
+.tabs{display:flex;flex-wrap:wrap;margin-bottom:10px}.tabs .on{background:var(--ac);color:#fff}
+.al.open{border-color:var(--bad)}.th{width:64px;height:64px;object-fit:cover;border-radius:10px}
+.keys{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:300px;margin:10px auto}.keys button{font-size:24px;padding:14px}
+#qrbox,#aq{display:inline-block;background:#fff;padding:12px;border-radius:12px;margin:10px}
+summary{cursor:pointer}.demo{margin-top:8px;color:var(--mut)}
+</style></head><body>
+<nav><b>🛒 SmartCheckout</b><a href="#home">Home</a><a href="#portal">Customer portal</a><a href="#admin">Staff portal <span id="bdg" hidden></span></a><a href="#kiosk" onclick="enterKiosk(event)">Self-checkout</a></nav>
+<div id="toast" hidden></div>
+<div id="fsb" hidden onclick="document.documentElement.requestFullscreen().catch(()=>{});this.hidden=true"><div><h1>Tap to continue</h1><p>This checkout runs in full screen.</p></div></div>
+
+<main id="home" class="view c"><h1 style="margin-top:30px">Welcome to SmartCheckout</h1><p class="mut">Where would you like to go?</p><div class="hgrid"><button class="hc" onclick="enterKiosk()">🛒<b>Self-checkout</b><small>Starts the checkout on this machine</small></button><button class="hc" onclick="location.hash='portal'">👤<b>Customer portal</b><small>Your purchases and receipts</small></button><button class="hc" onclick="location.hash='admin'">🔐<b>Staff portal</b><small>Staff only</small></button></div></main>
+
+<main id="kiosk" class="view">
+ <div id="hb" hidden class="card c"><b>🙋 Help is on the way.</b> A team member can add items from their phone if scanning isn’t working.</div>
+ <div class="kgrid">
+  <section class="card">
+   <div class="camwrap"><video id="cam" class="live" autoplay muted playsinline></video><div class="zone"></div></div>
+   <div id="camerr" hidden class="card" style="margin-top:10px"><p id="cammsg"></p><button class="big" onclick="startCam()">Enable camera &amp; microphone</button></div>
+   <h2>Scan your items</h2>
+   <p class="mut">Hold each item inside the box so the camera can see it. Wait for the beep, then remove it and scan the next one.</p><p class="mut">🔴 This checkout records video and audio for security.</p>
+  </section>
+  <section class="card" id="kside"></section>
+ </div>
+ <details class="demo"><summary>Demo tools (for testing without the camera)</summary><div id="demo"></div></details>
+ <button id="help" onclick="alertNew('help')">🙋 Need help?</button>
+ <button id="pcb" onclick="if(step=='scan'||step=='price'){step='price';K_()}">🏷️ Price check</button>
+ <div id="attract" hidden></div>
+ <div id="lock" hidden><div><h1 class="pulse">One moment please…</h1><h2>A team member is on the way.</h2><p>Staff: hold your admin QR code up to this camera.</p></div></div>
+</main>
+
+<main id="admin" class="view" hidden><div id="adm"></div></main>
+<main id="portal" class="view" hidden><div id="pt"></div></main>
+
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Math.random().toString(36).slice(2,10),money=n=>'$'+(+n).toFixed(2),fmt=t=>new Date(t).toLocaleString();
+const LBL={help:'🙋 Customer needs help',unscanned:'⚠️ Possible unscanned item',theft:'🚨 Possible theft'};
+const PW='9463',SEG=10000,KEEP=120;
+
+/* ---------- data store: everything lives in this browser, on the checkout machine ---------- */
+const KEY='sc.v1';let S;
+function load(){let o=null;try{o=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+ S=Object.assign({products:[],alerts:[],receipts:[],accounts:{},pending:{},token:uid()+uid(),auto:true},o||{})}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast('Storage is full — delete old items')}upd()}
+addEventListener('storage',e=>{if(e.key==KEY){load();onSync()}});
+load();
+
+let view='home',kioskOn=false,recOn=false,authed=false,viaKiosk=false,tab='qr',draft=null,step='scan',basket=[],lastR=null,phone='',tt,openN=0;
+function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,2600)}
+function beep(f=880){try{const a=new(window.AudioContext||window.webkitAudioContext)(),o=a.createOscillator();o.frequency.value=f;o.connect(a.destination);o.start();setTimeout(()=>{o.stop();a.close()},160)}catch(e){}}
+const isLocked=()=>S.alerts.some(a=>a.status=='open'&&a.type!='help');
+function upd(){const o=S.alerts.filter(a=>a.status=='open').length;const b=$('#bdg');b.hidden=!o;b.textContent=o;$('#hb').hidden=!S.alerts.some(a=>a.status=='open'&&a.type=='help'&&Date.now()-a.t<9e5);$('#lock').hidden=!(isLocked()&&view=='kiosk')}
+function onSync(){const o=S.alerts.filter(a=>a.status=='open').length;if(o>openN){beep(660);toast('🔔 New alert at a checkout')}openN=o;upd();if(view=='admin'&&authed&&tab!='prod'&&tab!='live'&&tab!='man')A_()}
+openN=S.alerts.filter(a=>a.status=='open').length;
+
+/* ---------- camera + local footage (IndexedDB on this machine) ---------- */
+let stream,cam=$('#cam'),DB;
+const idb=()=>DB||(DB=new Promise(r=>{try{const q=indexedDB.open('scfoot',1);q.onupgradeneeded=()=>q.result.createObjectStore('c',{keyPath:'s'});q.onsuccess=()=>r(q.result);q.onerror=()=>r(null)}catch(e){r(null)}}));
+const tx=async(m,f)=>{const d=await idb();if(!d)return;return new Promise(r=>{const t=d.transaction('c',m),q=f(t.objectStore('c'));t.oncomplete=()=>r(q&&q.result);t.onerror=()=>r()})};
+function record(){if(!window.MediaRecorder||!stream)return;const s=Date.now(),ch=[];let mr;try{mr=new MediaRecorder(stream)}catch(e){return}
+ mr.ondataavailable=e=>e.data.size&&ch.push(e.data);
+ mr.onstop=async()=>{await tx('readwrite',st=>st.put({s,e:Date.now(),b:new Blob(ch,{type:mr.mimeType||'video/webm'})}));const k=await tx('readonly',st=>st.getAllKeys());if(k&&k.length>KEEP)tx('readwrite',st=>{k.slice(0,k.length-KEEP).forEach(x=>st.delete(x))})};
+ mr.start();setTimeout(()=>{try{mr.stop()}catch(e){}if(kioskOn)record();else recOn=false},SEG)}
+let camBusy=false;
+async function startCam(){if(stream){attach();if(kioskOn&&!recOn){recOn=true;record()}return}if(camBusy)return;camBusy=true;
+ const g=a=>navigator.mediaDevices.getUserMedia({video:{width:640,height:480},audio:a});
+ try{if(!navigator.mediaDevices)throw{name:'Insecure'};
+  try{stream=await g(true)}catch(e){if(!['NotAllowedError','NotFoundError','NotReadableError','OverconstrainedError'].includes(e.name))throw e;stream=await g(false);toast('No microphone access — recording video only')}
+  $('#camerr').hidden=true;attach();if(kioskOn){recOn=true;record()}setInterval(tick,500)}
+ catch(e){camErr(e)}camBusy=false}
+function camErr(e){const n=e&&e.name;let m='The camera and microphone are needed for the checkout.';
+ if(n=='NotAllowedError')m='Camera/microphone access is blocked. Click the camera or lock icon in the address bar, set Camera and Microphone to Allow, then press the button below.';
+ else if(n=='NotFoundError')m='No camera was found on this device.';else if(n=='NotReadableError')m='Another app is using the camera. Close it and try again.';
+ else if(n=='Insecure')m='Camera access only works on a secure (https) page.';
+ if(window.top!==window)m+=' This page looks embedded inside another site, which can block camera prompts. Open it in its own tab or host it on GitHub Pages.';
+ $('#cammsg').textContent=m;$('#camerr').hidden=false}
+function attach(){$$('video.live').forEach(v=>{if(stream&&v.srcObject!==stream){v.srcObject=stream;v.play().catch(()=>{})}})}
+
+/* ---------- vision helpers ---------- */
+const cv=document.createElement('canvas'),qc=document.createElement('canvas'),mc=document.createElement('canvas');
+const qx=qc.getContext('2d',{willReadFrequently:true}),mx=mc.getContext('2d',{willReadFrequently:true});mc.width=16;mc.height=12;
+function crop(n){const v=cam,s=Math.min(v.videoWidth,v.videoHeight)*.5;cv.width=cv.height=n;const x=cv.getContext('2d',{willReadFrequently:true});x.drawImage(v,(v.videoWidth-s)/2,(v.videoHeight-s)/2,s,s,0,0,n,n);return x}
+function sigOf(){const d=crop(12).getImageData(0,0,12,12).data,a=[];for(let i=0;i<d.length;i+=4)a.push(d[i],d[i+1],d[i+2]);const m=a.reduce((x,y)=>x+y,0)/a.length;return a.map(v=>Math.round(v-m))}
+const dist=(a,b)=>a.reduce((s,v,i)=>s+Math.abs(v-b[i]),0)/a.length;
+function readQR(v){if(!v.videoWidth||!window.jsQR)return null;const w=400,h=Math.round(v.videoHeight*w/v.videoWidth);qc.width=w;qc.height=h;qx.drawImage(v,0,0,w,h);const r=jsQR(qx.getImageData(0,0,w,h).data,w,h);return r&&r.data}
+
+/* ---------- kiosk loop ---------- */
+let streak=0,cur=null,armed=true,prev=null,mot=0,lastScan=0,lastAlertT=0,lastAct=Date.now(),si=0;
+function tick(){if(!stream||!cam.videoWidth)return;
+ const q=readQR(cam);if(kioskOn&&okAdminQR(q)){authed=true;viaKiosk=true;tab='alerts';beep(1200);location.hash='admin';return}
+ if(kioskOn&&view=='kiosk'&&step=='scan'&&!isLocked()&&q&&q.startsWith('SCADD:'))manualAdd(q);
+ if(view!='kiosk'||isLocked()||(step!='scan'&&step!='price'))return;
+ if(S.products.length){const s=sigOf();let best=null,bd=1e9,sd=1e9;
+  for(const p of S.products){const d=dist(s,p.sig);if(d<bd){sd=bd;bd=d;best=p}else if(d<sd)sd=d}
+  if(bd<18&&sd-bd>4){if(cur==best.id)streak++;else{cur=best.id;streak=1}if(streak>=3&&(armed||step=='price')){armed=false;step=='price'?showPrice(best):addItem(best)}}
+  else{streak=0;cur=null;if(bd>26){armed=true;if(step=='price'&&$('#pc'))$('#pc').innerHTML='<p class="mut">Hold an item in the box…</p>'}}}
+ mx.drawImage(cam,0,0,16,12);const d=mx.getImageData(0,0,16,12).data;let m=0;
+ if(prev)for(let i=0;i<d.length;i+=4)m+=Math.abs(d[i]+d[i+1]+d[i+2]-prev[i]-prev[i+1]-prev[i+2])/3;prev=d.slice();m/=192;
+ mot=m>14?mot+1:0;
+ if(S.auto&&step=='scan'&&basket.length&&mot>=6&&Date.now()-lastScan>7000&&Date.now()-lastAlertT>30000){lastAlertT=Date.now();alertNew('unscanned')}}
+function addItem(p){const b=basket.find(x=>x.id==p.id);b?b.qty++:basket.push({id:p.id,name:p.name,price:p.price,qty:1});lastScan=lastAct=Date.now();beep();toast('Added '+p.name);K_()}
+function alertNew(type){if(type=='help'&&S.alerts.some(a=>a.status=='open'&&a.type=='help')){toast('Help is already on the way');return}
+ S.alerts.unshift({id:uid(),type,t:Date.now(),status:'open'});save();openN=S.alerts.filter(a=>a.status=='open').length;
+ toast(type=='help'?'A team member has been notified — help is on the way':'A team member has been notified')}
+const usedAdd=new Set();let rejT=0;
+function manualAdd(q){const i=q.lastIndexOf('.'),j=q.slice(6,i);if(q.slice(i+1)!==hh(j+PW+'add'))return;let a;try{a=JSON.parse(j)}catch(e){return}
+ if(usedAdd.has(a[0])||Math.abs(Date.now()-parseInt(a[1],36))>9e5)return;
+ if(!S.alerts.some(x=>x.type=='help'&&x.status=='open'&&Date.now()-x.t<9e5)){if(Date.now()-rejT>3000){rejT=Date.now();toast('Staff can only add items while a Help request is open')}return}
+ usedAdd.add(a[0]);const n=Math.min(Math.max(1,+a[4]||1),50),p={id:'m'+a[0],name:String(a[2]).slice(0,24),price:+a[3]||0};
+ basket.push({id:p.id,name:p.name,price:p.price,qty:n});lastScan=lastAct=Date.now();beep();toast('Staff added '+p.name+' ×'+n);K_()}
+function tMan(){$('#tb').innerHTML=`<div class="card"><h3>Add an item manually</h3><p class="mut">Use this when scanning doesn’t work. Enter the item, tap Show QR code, then hold your phone up to the checkout camera. It only works while the customer’s Help request is open.</p><input id="mn" placeholder="Item name"><input id="mp" placeholder="Price e.g. 2.50" inputmode="decimal"><input id="mx" placeholder="Quantity" inputmode="numeric" value="1"><button class="big" onclick="manQR()">Show QR code</button><div class="c"><div id="mq" hidden style="display:inline-block;background:#fff;padding:12px;border-radius:12px;margin:10px"></div></div></div>`}
+function manQR(){const n=$('#mn').value.trim().slice(0,24),p=parseFloat($('#mp').value),q=Math.min(50,Math.max(1,parseInt($('#mx').value)||1));
+ if(!n||!(p>=0)){toast('Enter a name and a price');return}
+ const j=JSON.stringify([uid(),Date.now().toString(36),n,p,q]),e=$('#mq');e.hidden=false;e.style.display='inline-block';mkQR(e,'SCADD:'+j+'.'+hh(j+PW+'add'),220)}
+function showPrice(p){lastAct=Date.now();const e=$('#pc');if(e)e.innerHTML=`<h1>${esc(p.name)}</h1><h1 style="color:var(--ok)">${money(p.price)}</h1>`}
+const hh=s=>{let a=3735928559,b=1103547991;for(let i=0;i<s.length;i++){const c=s.charCodeAt(i);a=Math.imul(a^c,2654435761);b=Math.imul(b^c,1597334677)}a=Math.imul(a^a>>>16,2246822507)^Math.imul(b^b>>>13,3266489909);return(a>>>0).toString(36)};
+const adminQR=()=>{const t=Date.now().toString(36);return'SCADMIN:'+t+'.'+hh(t+PW+'sc')};
+const okAdminQR=q=>{if(!q||!q.startsWith('SCADMIN:'))return false;const[p,h]=q.slice(8).split('.');return h===hh(p+PW+'sc')&&Math.abs(Date.now()-parseInt(p,36))<9e5};
+const total=()=>basket.reduce((a,b)=>a+b.price*b.qty,0);
+function pay(){lastR={id:uid().toUpperCase(),t:Date.now(),i:basket.map(b=>[b.name,b.price,b.qty]),tot:total()};S.receipts.unshift(lastR);S.alerts.forEach(a=>{if(a.type=='help'&&a.status=='open')a.status='ok'});save();step='paid';K_()}
+const rLines=r=>r.i.map(x=>`<div class="row"><span>${esc(x[0])} ×${x[2]}</span><span>${money(x[1]*x[2])}</span></div>`).join('');
+function mkQR(el,t,n){el.innerHTML='';try{new QRCode(el,{text:t,width:n,height:n,correctLevel:QRCode.CorrectLevel.L});return true}catch(e){el.textContent='Too many items for a QR code — please use your phone number instead.';return false}}
+function rPayload(r){let it=r.i.map(x=>[x[0].slice(0,14),x[1],x[2]]);const o=()=>'SCRCPT:'+JSON.stringify({id:r.id,t:r.t,i:it,tot:r.tot});
+ if(o().length>250&&it.length>6){const rest=it.slice(6);it=it.slice(0,6).concat([['+'+rest.length+' more',+rest.reduce((a,x)=>a+x[1]*x[2],0).toFixed(2),1]])}
+ if(o().length>250)it=it.map(x=>[x[0].slice(0,8),x[1],x[2]]);return o()}
+function key(k){phone=k=='<'?phone.slice(0,-1):(phone+k).slice(0,15);K_()}
+function sendPhone(){if(phone.length<6){toast('Please enter your full phone number');return}S.pending[phone]=(S.pending[phone]||[]).concat([lastR]);save();done()}
+function done(){step='thanks';K_();setTimeout(()=>{if(step=='thanks'){basket=[];step='scan';phone='';lastR=null;K_()}},4500)}
+function K_(){const el=$('#kside');let h='';
+ if(step=='scan')h=`<h2>Your basket</h2>${basket.length?basket.map(b=>`<div class="row"><span>${esc(b.name)} ×${b.qty}</span><b>${money(b.price*b.qty)}</b></div>`).join(''):'<p class="mut">Nothing scanned yet.</p>'}<div class="row tot"><span>Total</span><b>${money(total())}</b></div><button class="big" ${basket.length?'':'disabled'} onclick="pay()">Pay now</button>`;
+ else if(step=='price')h=`<h2>🏷️ Price check</h2><p>Hold an item inside the box and its price will appear here.</p><div id="pc" class="c card"><p class="mut">${S.products.length?'Hold an item in the box…':'No products have been set up yet.'}</p></div><button class="big" onclick="step='scan';K_()">Back to scanning</button>`;
+ else if(step=='paid')h=`<h2 style="color:var(--ok)">✅ Payment successful!</h2>${rLines(lastR)}<div class="row tot"><span>Total</span><b>${money(lastR.tot)}</b></div><small>Receipt ${lastR.id} saved on this checkout.</small><h2 style="margin-top:14px">Do you have our app?</h2><button class="yn ok" onclick="step='phoneq';K_()">Yes</button><button class="yn" onclick="done()">No</button>`;
+ else if(step=='phoneq')h=`<h2>Do you have your phone with you?</h2><button class="yn ok" onclick="step='qr';K_()">Yes</button><button class="yn" onclick="step='keypad';K_()">No</button>`;
+ else if(step=='qr')h=`<h2>Open “My account” in the app</h2><p>Tap <b>Scan receipt QR</b> and point your phone at this code.</p><div class="c"><div id="qrbox"></div></div><button class="big" onclick="done()">Done</button>`;
+ else if(step=='keypad')h=`<h2>Enter your phone number</h2><p class="mut">We’ll send your purchase details to your account.</p><input readonly value="${esc(phone)}" style="font-size:26px;text-align:center"><div class="keys">${[1,2,3,4,5,6,7,8,9,'<',0,'✓'].map(k=>`<button onclick="${k=='✓'?'sendPhone()':`key('${k}')`}">${k}</button>`).join('')}</div>`;
+ else h=`<h1 style="text-align:center">Thank you! 👋</h1><p class="c">Have a great day.</p>`;
+ el.innerHTML=h;if(step=='qr')mkQR($('#qrbox'),rPayload(lastR),220);
+ $('#demo').innerHTML=S.products.map(p=>`<button onclick="addItem(S.products.find(x=>x.id=='${p.id}'))">+ ${esc(p.name)}</button>`).join('')+`<button onclick="alertNew('unscanned')">Simulate unscanned item</button><button onclick="alertNew('theft')">Simulate theft</button>`}
+['pointerdown','keydown'].forEach(e=>addEventListener(e,()=>{lastAct=Date.now();$('#attract').hidden=true}));
+function slide(){const L=S.products.length?S.products.map(p=>`<img src="${p.th}" alt=""><h1>${esc(p.name)}</h1><h2>${money(p.price)}</h2>`):['<h1>Welcome 👋</h1><h2>Scan your items, pay, and go</h2>'];$('#attract').innerHTML=`<div class="slide">${L[si++%L.length]}<p>Touch the screen to start</p></div>`}
+setInterval(()=>{const a=$('#attract');if(view=='kiosk'&&step=='scan'&&!isLocked()&&Date.now()-lastAct>5000){if(a.hidden){a.hidden=false;slide()}}else a.hidden=true},500);
+setInterval(()=>{if(!$('#attract').hidden)slide()},3000);
+setInterval(()=>{if(step=='price'&&Date.now()-lastAct>15000){step='scan';K_()}},1000);
+
+/* ---------- admin ---------- */
+function alog(){if($('#pw').value===PW){authed=true;tab='qr';A_()}else{toast('Wrong password');$('#pw').value=''}}
+function A_(){const el=$('#adm');
+ if(!authed){el.innerHTML=`<div class="card narrow"><h2>🔒 Staff portal</h2><input id="pw" type="password" inputmode="numeric" placeholder="Password" onkeydown="if(event.key=='Enter')alog()"><button class="big" onclick="alog()">Unlock</button></div>`;return}
+ const o=S.alerts.filter(a=>a.status=='open').length,T=[['qr','Access QR'],['man','Manual add'],['alerts','Alerts'+(o?` (${o})`:'')],['live','Live'],['prod','Products'],['rec','Receipts']];
+ el.innerHTML=`<div class="tabs">${T.map(t=>`<button class="${tab==t[0]?'on':''}" onclick="tab='${t[0]}';A_()">${t[1]}</button>`).join('')}${viaKiosk?`<button class="ok" onclick="viaKiosk=false;location.hash='kiosk'">← Back to checkout</button><button onclick="exitKiosk()">⏏ Exit self-checkout mode</button>`:''}<button onclick="authed=false;viaKiosk=false;kioskOn?location.hash='kiosk':A_()">Log out</button></div><div id="tb"></div>`;
+ ({qr:tQR,man:tMan,alerts:tAl,live:tLive,prod:tProd,rec:tRec})[tab]();attach()}
+function tQR(){$('#tb').innerHTML=`<div class="card narrow c"><h2>Your admin QR code</h2><div id="aq"></div><p>Hold this up to the self-checkout camera to unlock it and open the staff tools there. It works from any phone for 15 minutes.</p><label><input type="checkbox" style="width:auto" ${S.auto?'checked':''} onchange="S.auto=this.checked;save()"> Auto-detect unscanned items</label><br><button onclick="tQR()">Refresh code</button></div>`;mkQR($('#aq'),adminQR(),200)}
+function tAl(){$('#tb').innerHTML=(S.alerts.length?S.alerts.map(a=>`<div class="card al ${a.status}"><div class="row"><b>${LBL[a.type]}</b><span>${fmt(a.t)} · ${a.status=='open'?'<b style="color:var(--bad)">OPEN</b>':'resolved'}</span></div><button onclick="clips('${a.id}')">▶ View footage</button>${a.status=='open'?`<button class="ok" onclick="resolve('${a.id}')">It’s OK — let them continue</button>`:''}</div>`).join(''):'<p class="mut">No alerts.</p>')+'<div id="clips"></div>'}
+async function clips(id){const a=S.alerts.find(x=>x.id==id),el=$('#clips');el.innerHTML='<p class="mut">Loading footage…</p>';
+ const all=((await tx('readonly',s=>s.getAll()))||[]).filter(c=>c.s<=a.t+SEG&&c.e>=a.t-SEG-2000).sort((x,y)=>x.s-y.s);
+ el.innerHTML=`<div class="card"><h3>Footage around ${fmt(a.t)}</h3>${all.length?all.map(c=>`<p class="mut">${fmt(c.s)} → ${new Date(c.e).toLocaleTimeString()}</p>${(u=>`<video controls playsinline src="${u}" style="width:100%;border-radius:12px"></video><a href="${u}" download="footage-${c.s}.webm">⬇ Save clip</a>`)(URL.createObjectURL(c.b))}`).join(''):'<p class="mut">No footage saved yet — clips save every 10 seconds. Try again shortly.</p><button onclick="clips(\''+id+'\')">Retry</button>'}</div>`;el.scrollIntoView({behavior:'smooth'})}
+function resolve(id){const a=S.alerts.find(x=>x.id==id);a.status='ok';save();openN=S.alerts.filter(x=>x.status=='open').length;if(viaKiosk){viaKiosk=false;toast('Resolved — customer can continue');location.hash='kiosk'}else A_()}
+function tLive(){startCam();$('#tb').innerHTML=`<div class="card"><h3>Live camera</h3><video class="live" autoplay muted playsinline></video><p class="mut">Footage is recorded in 10-second clips and kept on this checkout machine.</p></div>`}
+function tProd(){startCam();$('#tb').innerHTML=`<div class="card"><h3>Add a product</h3><div class="camwrap sm"><video class="live" autoplay muted playsinline></video><div class="zone"></div></div><p class="mut">Place the product inside the box (the same spot customers will use), then take its photo.</p>${draft?`<img class="th" src="${draft.th}" alt=""><input id="pn_" placeholder="Product name"><input id="pp_" placeholder="Price e.g. 2.50" inputmode="decimal"><button class="big" onclick="saveP()">Save product</button><button onclick="draft=null;tProd();attach()">Retake</button>`:`<button class="big" onclick="snap()">📸 Take product photo</button>`}</div>`+S.products.map(p=>`<div class="card row"><img class="th" src="${p.th}" alt=""><b>${esc(p.name)}</b><span>${money(p.price)}</span><button onclick="S.products=S.products.filter(x=>x.id!='${p.id}');save();tProd();attach()">Delete</button></div>`).join('')}
+function snap(){if(!cam.videoWidth){toast('Camera not ready');return}const sig=sigOf();crop(120);draft={sig,th:cv.toDataURL('image/jpeg',.7)};tProd();attach()}
+function saveP(){const n=$('#pn_').value.trim(),p=parseFloat($('#pp_').value);if(!n||!(p>=0)){toast('Enter a name and a price');return}S.products.push({id:uid(),name:n,price:p,sig:draft.sig,th:draft.th});draft=null;save();tProd();attach();toast('Product added')}
+function tRec(){$('#tb').innerHTML=S.receipts.length?S.receipts.map(rHTML).join(''):'<p class="mut">No receipts yet.</p>'}
+const rHTML=r=>`<details class="card"><summary><b>${fmt(r.t)}</b> — ${money(r.tot)}</summary>${rLines(r)}<div class="row tot"><span>Total</span><b>${money(r.tot)}</b></div><small>Receipt ${esc(r.id)}</small></details>`;
+
+/* ---------- customer portal ---------- */
+let me=null,pstream,pscan;try{me=localStorage.getItem('sc.me')}catch(e){}
+function login(){const ph=$('#ph').value.replace(/\D/g,''),pn=$('#pn').value;if(ph.length<6||!pn){toast('Enter your phone number and a PIN');return}
+ let a=S.accounts[ph];if(a&&a.pin!==pn){toast('Wrong PIN');return}if(!a)a=S.accounts[ph]={pin:pn,receipts:[]};
+ (S.pending[ph]||[]).forEach(r=>{if(!a.receipts.some(x=>x.id==r.id))a.receipts.unshift(r)});delete S.pending[ph];save();me=ph;try{localStorage.setItem('sc.me',ph)}catch(e){}P_()}
+function P_(){const el=$('#pt');
+ if(!me||!S.accounts[me]){el.innerHTML=`<div class="card narrow"><h2>My account</h2><p class="mut">Log in with your phone number. New here? Pick a PIN and we’ll create your account.</p><input id="ph" placeholder="Phone number" inputmode="tel"><input id="pn" placeholder="PIN" type="password" inputmode="numeric"><button class="big" onclick="login()">Log in / sign up</button></div>`;return}
+ const a=S.accounts[me];el.innerHTML=`<div class="card"><div class="row"><h2>Hi, ${esc(me)} 👋</h2><button onclick="me=null;try{localStorage.removeItem('sc.me')}catch(e){}stopScan();P_()">Log out</button></div><button class="big" onclick="scanR()">📷 Scan receipt QR at a checkout</button><div id="pscan" hidden><video id="pv" autoplay muted playsinline style="width:100%;border-radius:12px;margin-top:10px"></video><p class="mut">Point your camera at the QR code on the checkout screen…</p></div></div><h3>My purchases &amp; receipts</h3>${a.receipts.length?a.receipts.map(rHTML).join(''):'<p class="mut">No receipts yet.</p>'}`}
+async function scanR(){try{pstream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}})}catch(e){toast('Camera permission needed');return}
+ const v=$('#pv');$('#pscan').hidden=false;v.srcObject=pstream;v.play().catch(()=>{});
+ pscan=setInterval(()=>{const q=readQR(v);if(q&&q.startsWith('SCRCPT:')){try{const r=JSON.parse(q.slice(7)),a=S.accounts[me];if(!a.receipts.some(x=>x.id==r.id))a.receipts.unshift(r);save();stopScan();beep(1000);toast('Receipt saved to your account ✅');P_()}catch(e){}}},400)}
+function stopScan(){clearInterval(pscan);pstream&&pstream.getTracks().forEach(t=>t.stop());pstream=null}
+
+/* ---------- routing ---------- */
+/* kiosk lock: once self-checkout starts, only a valid staff QR scan can leave it */
+function enterKiosk(e){if(e&&e.preventDefault)e.preventDefault();kioskOn=true;try{document.documentElement.requestFullscreen().catch(()=>{})}catch(x){}startCam();location.hash='kiosk'}
+function exitKiosk(){kioskOn=false;viaKiosk=false;authed=false;if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});location.hash='home'}
+addEventListener('beforeunload',e=>{if(kioskOn){e.preventDefault();e.returnValue=''}});
+addEventListener('contextmenu',e=>{if(kioskOn)e.preventDefault()});
+document.addEventListener('fullscreenchange',()=>{$('#fsb').hidden=!(kioskOn&&!document.fullscreenElement&&!viaKiosk)});
+function route(){let v=location.hash.slice(1)||'home';if(!['home','kiosk','admin','portal'].includes(v))v='home';
+ if(kioskOn&&!(v=='kiosk'||(v=='admin'&&authed&&viaKiosk))){location.hash='kiosk';return}
+ if(v=='kiosk'&&!kioskOn){location.hash='home';return}
+ view=v;document.body.classList.toggle('kon',kioskOn);
+ $$('.view').forEach(m=>m.hidden=m.id!=view);if(view!='portal')stopScan();upd();
+ if(view=='kiosk'){startCam();K_()}else if(view=='admin')A_();else if(view=='portal')P_()}
+addEventListener('hashchange',route);route();
+</script></body></html>

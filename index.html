@@ -34,8 +34,10 @@ input{font:inherit;width:100%;padding:12px;border-radius:10px;border:1px solid v
 .camwrap.sm{max-width:420px}.camwrap video,video.live{width:100%;height:100%;object-fit:cover;display:block;border-radius:12px;background:#000}
 .zone{position:absolute;left:50%;top:25%;height:50%;aspect-ratio:1;transform:translateX(-50%);border:3px dashed #fff;border-radius:14px;box-shadow:0 0 0 999px rgba(0,0,0,.25);pointer-events:none}
 #help,#pcb{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:50;background:var(--bad);color:#fff;border:0;border-radius:99px;padding:16px 22px;font-size:18px;box-shadow:0 6px 20px rgba(0,0,0,.3)}
-#attract,#lock,#fsb{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px}
+#attract,#lock,#fsb,#hs,#smenu{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px}
 #pcb{left:16px;right:auto;background:var(--ac)}
+#hs{background:rgba(10,15,30,.95);color:#fff;z-index:46}#smenu{background:rgba(10,15,30,.96);z-index:70;overflow:auto;text-align:left}
+button.sec{background:var(--card)!important;color:var(--ink)!important;border:1px solid var(--bd)!important}
 #fsb{background:#0d1324;color:#fff;z-index:60;cursor:pointer}
 #attract{background:linear-gradient(135deg,#1e3a8a,#7c3aed);color:#fff;animation:f 1s}
 #lock{background:rgba(10,15,30,.94);color:#fff;z-index:45}
@@ -70,6 +72,8 @@ summary{cursor:pointer}.demo{margin-top:8px;color:var(--mut)}
  <button id="help" onclick="alertNew('help')">🙋 Need help?</button>
  <button id="pcb" onclick="if(step=='scan'||step=='price'){step='price';K_()}">🏷️ Price check</button>
  <div id="attract" hidden></div>
+ <div id="hs" hidden><div><h1 class="pulse">🙋 Help is on the way</h1><h2>Staff: please scan your QR code to continue</h2><p>Hold your staff QR code up to this camera.</p><button onclick="cancelHelp()">I don’t need help any more</button></div></div>
+ <div id="smenu" hidden></div>
  <div id="lock" hidden><div><h1 class="pulse">One moment please…</h1><h2>A team member is on the way.</h2><p>Staff: hold your admin QR code up to this camera.</p></div></div>
 </main>
 
@@ -91,11 +95,11 @@ function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast('
 addEventListener('storage',e=>{if(e.key==KEY){load();onSync()}});
 load();
 
-let view='home',kioskOn=false,recOn=false,authed=false,viaKiosk=false,tab='qr',draft=null,step='scan',basket=[],lastR=null,phone='',tt,openN=0;
+let view='home',kioskOn=false,recOn=false,staffOn=false,staffT=0,authed=false,viaKiosk=false,tab='qr',draft=null,step='scan',basket=[],lastR=null,phone='',tt,openN=0;
 function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,2600)}
 function beep(f=880){try{const a=new(window.AudioContext||window.webkitAudioContext)(),o=a.createOscillator();o.frequency.value=f;o.connect(a.destination);o.start();setTimeout(()=>{o.stop();a.close()},160)}catch(e){}}
 const isLocked=()=>S.alerts.some(a=>a.status=='open'&&a.type!='help');
-function upd(){const o=S.alerts.filter(a=>a.status=='open').length;const b=$('#bdg');b.hidden=!o;b.textContent=o;$('#hb').hidden=!S.alerts.some(a=>a.status=='open'&&a.type=='help'&&Date.now()-a.t<9e5);$('#lock').hidden=!(isLocked()&&view=='kiosk')}
+function upd(){const o=S.alerts.filter(a=>a.status=='open').length;const b=$('#bdg');b.hidden=!o;b.textContent=o;$('#hb').hidden=!S.alerts.some(a=>a.status=='open'&&a.type=='help'&&Date.now()-a.t<9e5);$('#hs').hidden=!(view=='kiosk'&&!staffOn&&!isLocked()&&S.alerts.some(a=>a.type=='help'&&a.status=='open'&&!a.att&&Date.now()-a.t<9e5));$('#lock').hidden=!(isLocked()&&view=='kiosk')}
 function onSync(){const o=S.alerts.filter(a=>a.status=='open').length;if(o>openN){beep(660);toast('🔔 New alert at a checkout')}openN=o;upd();if(view=='admin'&&authed&&tab!='prod'&&tab!='live'&&tab!='man')A_()}
 openN=S.alerts.filter(a=>a.status=='open').length;
 
@@ -133,7 +137,7 @@ function readQR(v){if(!v.videoWidth||!window.jsQR)return null;const w=400,h=Math
 /* ---------- kiosk loop ---------- */
 let streak=0,cur=null,armed=true,prev=null,mot=0,lastScan=0,lastAlertT=0,lastAct=Date.now(),si=0;
 function tick(){if(!stream||!cam.videoWidth)return;
- const q=readQR(cam);if(kioskOn&&okAdminQR(q)){authed=true;viaKiosk=true;tab='alerts';beep(1200);location.hash='admin';return}
+ const q=readQR(cam);if(kioskOn&&okAdminQR(q)){if(view=='kiosk'&&!staffOn&&Date.now()-staffT>4000){staffOn=true;authed=true;viaKiosk=true;beep(1200);SM_()}return}
  if(kioskOn&&view=='kiosk'&&step=='scan'&&!isLocked()&&q&&q.startsWith('SCADD:'))manualAdd(q);
  if(view!='kiosk'||isLocked()||(step!='scan'&&step!='price'))return;
  if(S.products.length){const s=sigOf();let best=null,bd=1e9,sd=1e9;
@@ -148,11 +152,21 @@ function addItem(p){const b=basket.find(x=>x.id==p.id);b?b.qty++:basket.push({id
 function alertNew(type){if(type=='help'&&S.alerts.some(a=>a.status=='open'&&a.type=='help')){toast('Help is already on the way');return}
  S.alerts.unshift({id:uid(),type,t:Date.now(),status:'open'});save();openN=S.alerts.filter(a=>a.status=='open').length;
  toast(type=='help'?'A team member has been notified — help is on the way':'A team member has been notified')}
+/* staff menu on the checkout (opens when a valid staff QR is scanned) */
+function SM_(){S.alerts.forEach(a=>{if(a.type=='help'&&a.status=='open')a.att=true});save();
+ const h=S.alerts.some(a=>a.type=='help'&&a.status=='open'),o=S.alerts.filter(a=>a.status=='open'&&a.type!='help').length,sc=step=='scan',el=$('#smenu');el.hidden=false;
+ el.innerHTML=`<div class="card" style="max-width:480px;width:100%"><h2>🔐 Staff menu</h2>${h?'<p class="mut">A customer asked for help.</p><button class="big ok" onclick="smDone(true)">✅ Finished helping — resume checkout</button>':''}<button class="big sec" onclick="smDone(false)">← Back to checkout${h?' (keep help open)':''}</button><button class="big sec" onclick="smGo('alerts')">🚨 Alerts &amp; footage${o?' ('+o+')':''}</button>${sc?'<button class="big sec" onclick="smAdd()">➕ Add an item to the basket</button><div id="smx"></div>':''}<button class="big sec" onclick="smGo('prod')">🛠 Staff portal (products, live view, receipts)</button><button class="big sec" onclick="exitKiosk()">⏏ Exit self-checkout mode</button></div>`}
+function smAdd(){$('#smx').innerHTML=S.products.map(p=>`<button onclick="smPut('${p.id}')">+ ${esc(p.name)} ${money(p.price)}</button>`).join('')+`<input id="sn" placeholder="Other item name"><input id="sp" placeholder="Price e.g. 2.50" inputmode="decimal"><button class="ok" onclick="smPut()">Add custom item</button>`}
+function smPut(id){let p;if(id)p=S.products.find(x=>x.id==id);else{const n=$('#sn').value.trim(),pr=parseFloat($('#sp').value);if(!n||!(pr>=0)){toast('Enter a name and a price');return}p={id:'m'+uid(),name:n.slice(0,24),price:pr}}
+ if(p){const b=basket.find(x=>x.id==p.id);b?b.qty++:basket.push({id:p.id,name:p.name,price:p.price,qty:1});lastScan=lastAct=Date.now();toast('Added '+p.name);K_()}}
+function smDone(r){if(r)S.alerts.forEach(a=>{if(a.type=='help'&&a.status=='open')a.status='ok'});staffOn=false;staffT=Date.now();authed=false;viaKiosk=false;$('#smenu').hidden=true;save();toast(r?'Help finished — checkout resumed':'Back to checkout')}
+function smGo(t){tab=t;staffOn=false;staffT=Date.now();$('#smenu').hidden=true;location.hash='admin'}
+function cancelHelp(){S.alerts.forEach(a=>{if(a.type=='help'&&a.status=='open')a.status='ok'});save()}
 const usedAdd=new Set();let rejT=0;
 function manualAdd(q){const i=q.lastIndexOf('.'),j=q.slice(6,i);if(q.slice(i+1)!==hh(j+PW+'add'))return;let a;try{a=JSON.parse(j)}catch(e){return}
  if(usedAdd.has(a[0])||Math.abs(Date.now()-parseInt(a[1],36))>9e5)return;
  if(!S.alerts.some(x=>x.type=='help'&&x.status=='open'&&Date.now()-x.t<9e5)){if(Date.now()-rejT>3000){rejT=Date.now();toast('Staff can only add items while a Help request is open')}return}
- usedAdd.add(a[0]);const n=Math.min(Math.max(1,+a[4]||1),50),p={id:'m'+a[0],name:String(a[2]).slice(0,24),price:+a[3]||0};
+ usedAdd.add(a[0]);S.alerts.forEach(x=>{if(x.type=='help'&&x.status=='open')x.att=true});save();const n=Math.min(Math.max(1,+a[4]||1),50),p={id:'m'+a[0],name:String(a[2]).slice(0,24),price:+a[3]||0};
  basket.push({id:p.id,name:p.name,price:p.price,qty:n});lastScan=lastAct=Date.now();beep();toast('Staff added '+p.name+' ×'+n);K_()}
 function tMan(){$('#tb').innerHTML=`<div class="card"><h3>Add an item manually</h3><p class="mut">Use this when scanning doesn’t work. Enter the item, tap Show QR code, then hold your phone up to the checkout camera. It only works while the customer’s Help request is open.</p><input id="mn" placeholder="Item name"><input id="mp" placeholder="Price e.g. 2.50" inputmode="decimal"><input id="mx" placeholder="Quantity" inputmode="numeric" value="1"><button class="big" onclick="manQR()">Show QR code</button><div class="c"><div id="mq" hidden style="display:inline-block;background:#fff;padding:12px;border-radius:12px;margin:10px"></div></div></div>`}
 function manQR(){const n=$('#mn').value.trim().slice(0,24),p=parseFloat($('#mp').value),q=Math.min(50,Math.max(1,parseInt($('#mx').value)||1));
@@ -224,7 +238,7 @@ function stopScan(){clearInterval(pscan);pstream&&pstream.getTracks().forEach(t=
 /* ---------- routing ---------- */
 /* kiosk lock: once self-checkout starts, only a valid staff QR scan can leave it */
 function enterKiosk(e){if(e&&e.preventDefault)e.preventDefault();kioskOn=true;try{document.documentElement.requestFullscreen().catch(()=>{})}catch(x){}startCam();location.hash='kiosk'}
-function exitKiosk(){kioskOn=false;viaKiosk=false;authed=false;if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});location.hash='home'}
+function exitKiosk(){kioskOn=false;staffOn=false;$('#smenu').hidden=true;viaKiosk=false;authed=false;if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});location.hash='home'}
 addEventListener('beforeunload',e=>{if(kioskOn){e.preventDefault();e.returnValue=''}});
 addEventListener('contextmenu',e=>{if(kioskOn)e.preventDefault()});
 document.addEventListener('fullscreenchange',()=>{$('#fsb').hidden=!(kioskOn&&!document.fullscreenElement&&!viaKiosk)});

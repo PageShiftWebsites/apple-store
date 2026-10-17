@@ -3,7 +3,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>SmartCheckout</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js" onerror="this.onerror=null;var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';document.head.appendChild(s)"></script>
 <style>
 :root{--bg:#f3f5fa;--card:#fff;--ink:#14213d;--mut:#667089;--ac:#2563eb;--ok:#16a34a;--bad:#dc2626;--bd:#dce2ee;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d1324;--card:#172039;--ink:#eef2ff;--mut:#9aa6c6;--ac:#6d9bff;--bd:#2a3556}}
@@ -38,6 +38,9 @@ input{font:inherit;width:100%;padding:12px;border-radius:10px;border:1px solid v
 #pcb{left:16px;right:auto;background:var(--ac)}
 #hs{background:rgba(10,15,30,.95);color:#fff;z-index:46}#smenu{background:rgba(10,15,30,.96);z-index:70;overflow:auto;text-align:left}
 button.sec{background:var(--card)!important;color:var(--ink)!important;border:1px solid var(--bd)!important}
+.qv{max-width:min(560px,90vw);margin:12px auto;border:3px solid #fff;border-radius:14px;overflow:hidden;background:#000}
+.qv video.live{height:auto;max-height:45vh;object-fit:contain;transform:scaleX(-1);border-radius:0;display:block}
+.badge{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.65);color:#fff;border-radius:99px;padding:3px 10px;font-size:13px}
 #fsb{background:#0d1324;color:#fff;z-index:60;cursor:pointer}
 #attract{background:linear-gradient(135deg,#1e3a8a,#7c3aed);color:#fff;animation:f 1s}
 #lock{background:rgba(10,15,30,.94);color:#fff;z-index:45}
@@ -61,7 +64,7 @@ summary{cursor:pointer}.demo{margin-top:8px;color:var(--mut)}
  <div id="hb" hidden class="card c"><b>🙋 Help is on the way.</b> A team member can add items from their phone if scanning isn’t working.</div>
  <div class="kgrid">
   <section class="card">
-   <div class="camwrap"><video id="cam" class="live" autoplay muted playsinline></video><div class="zone"></div></div>
+   <div class="camwrap"><video id="cam" class="live" autoplay muted playsinline></video><div class="zone"></div><div id="rec" class="badge">⚪ Camera starting…</div></div>
    <div id="camerr" hidden class="card" style="margin-top:10px"><p id="cammsg"></p><button class="big" onclick="startCam()">Enable camera &amp; microphone</button></div>
    <h2>Scan your items</h2>
    <p class="mut">Hold each item inside the box so the camera can see it. Wait for the beep, then remove it and scan the next one.</p><p class="mut">🔴 This checkout records video and audio for security.</p>
@@ -72,9 +75,9 @@ summary{cursor:pointer}.demo{margin-top:8px;color:var(--mut)}
  <button id="help" onclick="alertNew('help')">🙋 Need help?</button>
  <button id="pcb" onclick="if(step=='scan'||step=='price'){step='price';K_()}">🏷️ Price check</button>
  <div id="attract" hidden></div>
- <div id="hs" hidden><div><h1 class="pulse">🙋 Help is on the way</h1><h2>Staff: please scan your QR code to continue</h2><p>Hold your staff QR code up to this camera.</p><button onclick="cancelHelp()">I don’t need help any more</button></div></div>
+ <div id="hs" hidden><div><h1 class="pulse">🙋 Help is on the way</h1><h2>Staff: please scan your QR code to continue</h2><p>Hold your staff QR code in front of the camera.</p><div class="qv"><video class="live" autoplay muted playsinline></video></div><p class="qs">Looking for a QR code…</p><button onclick="cancelHelp()">I don’t need help any more</button></div></div>
  <div id="smenu" hidden></div>
- <div id="lock" hidden><div><h1 class="pulse">One moment please…</h1><h2>A team member is on the way.</h2><p>Staff: hold your admin QR code up to this camera.</p></div></div>
+ <div id="lock" hidden><div><h1 class="pulse">One moment please…</h1><h2>A team member is on the way.</h2><p>Staff: hold your staff QR code up to this camera.</p><div class="qv"><video class="live" autoplay muted playsinline></video></div><p class="qs">Looking for a QR code…</p></div></div>
 </main>
 
 <main id="admin" class="view" hidden><div id="adm"></div></main>
@@ -107,10 +110,10 @@ openN=S.alerts.filter(a=>a.status=='open').length;
 let stream,cam=$('#cam'),DB;
 const idb=()=>DB||(DB=new Promise(r=>{try{const q=indexedDB.open('scfoot',1);q.onupgradeneeded=()=>q.result.createObjectStore('c',{keyPath:'s'});q.onsuccess=()=>r(q.result);q.onerror=()=>r(null)}catch(e){r(null)}}));
 const tx=async(m,f)=>{const d=await idb();if(!d)return;return new Promise(r=>{const t=d.transaction('c',m),q=f(t.objectStore('c'));t.oncomplete=()=>r(q&&q.result);t.onerror=()=>r()})};
-function record(){if(!window.MediaRecorder||!stream)return;const s=Date.now(),ch=[];let mr;try{mr=new MediaRecorder(stream)}catch(e){return}
+function record(){if(!window.MediaRecorder||!stream)return;const s=Date.now(),ch=[];let mr;try{mr=new MediaRecorder(stream,{videoBitsPerSecond:1e6,audioBitsPerSecond:64000})}catch(e){try{mr=new MediaRecorder(stream)}catch(e2){return}}
  mr.ondataavailable=e=>e.data.size&&ch.push(e.data);
- mr.onstop=async()=>{await tx('readwrite',st=>st.put({s,e:Date.now(),b:new Blob(ch,{type:mr.mimeType||'video/webm'})}));const k=await tx('readonly',st=>st.getAllKeys());if(k&&k.length>KEEP)tx('readwrite',st=>{k.slice(0,k.length-KEEP).forEach(x=>st.delete(x))})};
- mr.start();setTimeout(()=>{try{mr.stop()}catch(e){}if(kioskOn)record();else recOn=false},SEG)}
+ mr.onstop=async()=>{if(!ch.length)return;await tx('readwrite',st=>st.put({s,e:Date.now(),b:new Blob(ch,{type:mr.mimeType||'video/webm'})}));const k=await tx('readonly',st=>st.getAllKeys());if(k&&k.length>KEEP)await tx('readwrite',st=>{k.slice(0,k.length-KEEP).forEach(x=>st.delete(x))});footUpd()};
+ mr.start();{const e=$('#rec');if(e&&!/clips/.test(e.textContent))e.textContent='🔴 REC · saving to this device'}setTimeout(()=>{try{mr.stop()}catch(e){}if(kioskOn)record();else recOn=false},SEG)}
 let camBusy=false;
 async function startCam(){if(stream){attach();if(kioskOn&&!recOn){recOn=true;record()}return}if(camBusy)return;camBusy=true;
  const g=a=>navigator.mediaDevices.getUserMedia({video:{width:640,height:480},audio:a});
@@ -132,12 +135,12 @@ const qx=qc.getContext('2d',{willReadFrequently:true}),mx=mc.getContext('2d',{wi
 function crop(n){const v=cam,s=Math.min(v.videoWidth,v.videoHeight)*.5;cv.width=cv.height=n;const x=cv.getContext('2d',{willReadFrequently:true});x.drawImage(v,(v.videoWidth-s)/2,(v.videoHeight-s)/2,s,s,0,0,n,n);return x}
 function sigOf(){const d=crop(12).getImageData(0,0,12,12).data,a=[];for(let i=0;i<d.length;i+=4)a.push(d[i],d[i+1],d[i+2]);const m=a.reduce((x,y)=>x+y,0)/a.length;return a.map(v=>Math.round(v-m))}
 const dist=(a,b)=>a.reduce((s,v,i)=>s+Math.abs(v-b[i]),0)/a.length;
-function readQR(v){if(!v.videoWidth||!window.jsQR)return null;const w=400,h=Math.round(v.videoHeight*w/v.videoWidth);qc.width=w;qc.height=h;qx.drawImage(v,0,0,w,h);const r=jsQR(qx.getImageData(0,0,w,h).data,w,h);return r&&r.data}
+function readQR(v){if(!v.videoWidth||!window.jsQR)return null;const w=Math.min(v.videoWidth,960),h=Math.round(v.videoHeight*w/v.videoWidth);qc.width=w;qc.height=h;qx.drawImage(v,0,0,w,h);const r=jsQR(qx.getImageData(0,0,w,h).data,w,h,{inversionAttempts:'attemptBoth'});return r&&r.data}
 
 /* ---------- kiosk loop ---------- */
 let streak=0,cur=null,armed=true,prev=null,mot=0,lastScan=0,lastAlertT=0,lastAct=Date.now(),si=0;
 function tick(){if(!stream||!cam.videoWidth)return;
- const q=readQR(cam);if(kioskOn&&okAdminQR(q)){if(view=='kiosk'&&!staffOn&&Date.now()-staffT>4000){staffOn=true;authed=true;viaKiosk=true;beep(1200);SM_()}return}
+ const q=readQR(cam);setQS(q);if(kioskOn&&okAdminQR(q)){if(view=='kiosk'&&!staffOn&&Date.now()-staffT>4000){staffOn=true;authed=true;viaKiosk=true;beep(1200);SM_()}return}
  if(kioskOn&&view=='kiosk'&&step=='scan'&&!isLocked()&&q&&q.startsWith('SCADD:'))manualAdd(q);
  if(view!='kiosk'||isLocked()||(step!='scan'&&step!='price'))return;
  if(S.products.length){const s=sigOf();let best=null,bd=1e9,sd=1e9;
@@ -162,9 +165,12 @@ function smPut(id){let p;if(id)p=S.products.find(x=>x.id==id);else{const n=$('#s
 function smDone(r){if(r)S.alerts.forEach(a=>{if(a.type=='help'&&a.status=='open')a.status='ok'});staffOn=false;staffT=Date.now();authed=false;viaKiosk=false;$('#smenu').hidden=true;save();toast(r?'Help finished — checkout resumed':'Back to checkout')}
 function smGo(t){tab=t;staffOn=false;staffT=Date.now();$('#smenu').hidden=true;location.hash='admin'}
 function cancelHelp(){S.alerts.forEach(a=>{if(a.type=='help'&&a.status=='open')a.status='ok'});save()}
+function setQS(q){let m=q?(okAdminQR(q)?'✅ Staff code recognised':'⚠️ A QR code was seen, but it isn’t the staff code'):'Looking for a QR code…';if(!window.jsQR)m='⚠️ The QR reader didn’t load — check the internet connection';$$('.qs').forEach(e=>e.textContent=m)}
+async function footStat(){const a=(await tx('readonly',s=>s.getAll()))||[];return{n:a.length,mb:a.reduce((x,c)=>x+c.b.size,0)/1048576,first:a.length?Math.min(...a.map(c=>c.s)):0,last:a.length?Math.max(...a.map(c=>c.e)):0}}
+async function footUpd(){const f=await footStat(),e=$('#rec');if(e)e.textContent='🔴 REC · '+f.n+' clips ('+f.mb.toFixed(0)+' MB) saved on this device'}
 const usedAdd=new Set();let rejT=0;
 function manualAdd(q){const i=q.lastIndexOf('.'),j=q.slice(6,i);if(q.slice(i+1)!==hh(j+PW+'add'))return;let a;try{a=JSON.parse(j)}catch(e){return}
- if(usedAdd.has(a[0])||Math.abs(Date.now()-parseInt(a[1],36))>9e5)return;
+ if(usedAdd.has(a[0])||Math.abs(Date.now()-parseInt(a[1],36))>36e5)return;
  if(!S.alerts.some(x=>x.type=='help'&&x.status=='open'&&Date.now()-x.t<9e5)){if(Date.now()-rejT>3000){rejT=Date.now();toast('Staff can only add items while a Help request is open')}return}
  usedAdd.add(a[0]);S.alerts.forEach(x=>{if(x.type=='help'&&x.status=='open')x.att=true});save();const n=Math.min(Math.max(1,+a[4]||1),50),p={id:'m'+a[0],name:String(a[2]).slice(0,24),price:+a[3]||0};
  basket.push({id:p.id,name:p.name,price:p.price,qty:n});lastScan=lastAct=Date.now();beep();toast('Staff added '+p.name+' ×'+n);K_()}
@@ -174,8 +180,8 @@ function manQR(){const n=$('#mn').value.trim().slice(0,24),p=parseFloat($('#mp')
  const j=JSON.stringify([uid(),Date.now().toString(36),n,p,q]),e=$('#mq');e.hidden=false;e.style.display='inline-block';mkQR(e,'SCADD:'+j+'.'+hh(j+PW+'add'),220)}
 function showPrice(p){lastAct=Date.now();const e=$('#pc');if(e)e.innerHTML=`<h1>${esc(p.name)}</h1><h1 style="color:var(--ok)">${money(p.price)}</h1>`}
 const hh=s=>{let a=3735928559,b=1103547991;for(let i=0;i<s.length;i++){const c=s.charCodeAt(i);a=Math.imul(a^c,2654435761);b=Math.imul(b^c,1597334677)}a=Math.imul(a^a>>>16,2246822507)^Math.imul(b^b>>>13,3266489909);return(a>>>0).toString(36)};
-const adminQR=()=>{const t=Date.now().toString(36);return'SCADMIN:'+t+'.'+hh(t+PW+'sc')};
-const okAdminQR=q=>{if(!q||!q.startsWith('SCADMIN:'))return false;const[p,h]=q.slice(8).split('.');return h===hh(p+PW+'sc')&&Math.abs(Date.now()-parseInt(p,36))<9e5};
+const adminQR=()=>'SCADMIN:'+hh(PW+'sc');
+const okAdminQR=q=>q==='SCADMIN:'+hh(PW+'sc');
 const total=()=>basket.reduce((a,b)=>a+b.price*b.qty,0);
 function pay(){lastR={id:uid().toUpperCase(),t:Date.now(),i:basket.map(b=>[b.name,b.price,b.qty]),tot:total()};S.receipts.unshift(lastR);S.alerts.forEach(a=>{if(a.type=='help'&&a.status=='open')a.status='ok'});save();step='paid';K_()}
 const rLines=r=>r.i.map(x=>`<div class="row"><span>${esc(x[0])} ×${x[2]}</span><span>${money(x[1]*x[2])}</span></div>`).join('');
@@ -209,13 +215,15 @@ function A_(){const el=$('#adm');
  const o=S.alerts.filter(a=>a.status=='open').length,T=[['qr','Access QR'],['man','Manual add'],['alerts','Alerts'+(o?` (${o})`:'')],['live','Live'],['prod','Products'],['rec','Receipts']];
  el.innerHTML=`<div class="tabs">${T.map(t=>`<button class="${tab==t[0]?'on':''}" onclick="tab='${t[0]}';A_()">${t[1]}</button>`).join('')}${viaKiosk?`<button class="ok" onclick="viaKiosk=false;location.hash='kiosk'">← Back to checkout</button><button onclick="exitKiosk()">⏏ Exit self-checkout mode</button>`:''}<button onclick="authed=false;viaKiosk=false;kioskOn?location.hash='kiosk':A_()">Log out</button></div><div id="tb"></div>`;
  ({qr:tQR,man:tMan,alerts:tAl,live:tLive,prod:tProd,rec:tRec})[tab]();attach()}
-function tQR(){$('#tb').innerHTML=`<div class="card narrow c"><h2>Your admin QR code</h2><div id="aq"></div><p>Hold this up to the self-checkout camera to unlock it and open the staff tools there. It works from any phone for 15 minutes.</p><label><input type="checkbox" style="width:auto" ${S.auto?'checked':''} onchange="S.auto=this.checked;save()"> Auto-detect unscanned items</label><br><button onclick="tQR()">Refresh code</button></div>`;mkQR($('#aq'),adminQR(),200)}
+function tQR(){$('#tb').innerHTML=`<div class="card narrow c"><h2>Your admin QR code</h2><div id="aq"></div><p>Hold this up to the self-checkout camera. It’s the same code every time, so you can screenshot or print it. Turn your screen brightness up and hold it flat and steady in front of the camera.</p><label><input type="checkbox" style="width:auto" ${S.auto?'checked':''} onchange="S.auto=this.checked;save()"> Auto-detect unscanned items</label><br></div>`;mkQR($('#aq'),adminQR(),260)}
 function tAl(){$('#tb').innerHTML=(S.alerts.length?S.alerts.map(a=>`<div class="card al ${a.status}"><div class="row"><b>${LBL[a.type]}</b><span>${fmt(a.t)} · ${a.status=='open'?'<b style="color:var(--bad)">OPEN</b>':'resolved'}</span></div><button onclick="clips('${a.id}')">▶ View footage</button>${a.status=='open'?`<button class="ok" onclick="resolve('${a.id}')">It’s OK — let them continue</button>`:''}</div>`).join(''):'<p class="mut">No alerts.</p>')+'<div id="clips"></div>'}
 async function clips(id){const a=S.alerts.find(x=>x.id==id),el=$('#clips');el.innerHTML='<p class="mut">Loading footage…</p>';
  const all=((await tx('readonly',s=>s.getAll()))||[]).filter(c=>c.s<=a.t+SEG&&c.e>=a.t-SEG-2000).sort((x,y)=>x.s-y.s);
  el.innerHTML=`<div class="card"><h3>Footage around ${fmt(a.t)}</h3>${all.length?all.map(c=>`<p class="mut">${fmt(c.s)} → ${new Date(c.e).toLocaleTimeString()}</p>${(u=>`<video controls playsinline src="${u}" style="width:100%;border-radius:12px"></video><a href="${u}" download="footage-${c.s}.webm">⬇ Save clip</a>`)(URL.createObjectURL(c.b))}`).join(''):'<p class="mut">No footage saved yet — clips save every 10 seconds. Try again shortly.</p><button onclick="clips(\''+id+'\')">Retry</button>'}</div>`;el.scrollIntoView({behavior:'smooth'})}
 function resolve(id){const a=S.alerts.find(x=>x.id==id);a.status='ok';save();openN=S.alerts.filter(x=>x.status=='open').length;if(viaKiosk){viaKiosk=false;toast('Resolved — customer can continue');location.hash='kiosk'}else A_()}
-function tLive(){startCam();$('#tb').innerHTML=`<div class="card"><h3>Live camera</h3><video class="live" autoplay muted playsinline></video><p class="mut">Footage is recorded in 10-second clips and kept on this checkout machine.</p></div>`}
+function tLive(){startCam();$('#tb').innerHTML=`<div class="card"><h3>Live camera</h3><video class="live" autoplay muted playsinline></video><h3>Footage saved on this device</h3><p id="fs" class="mut">Checking…</p><div id="fl"></div><button onclick="tLive();attach()">Refresh</button></div>`;footStat().then(async f=>{const sp=navigator.storage&&navigator.storage.persisted?await navigator.storage.persisted():false;
+ $('#fs').innerHTML=f.n?`${f.n} clips · ${f.mb.toFixed(0)} MB · ${fmt(f.first)} → ${fmt(f.last)}<br>Storage protected from automatic deletion: ${sp?'yes':'no'}`:'No footage saved yet. Clips are saved every 10 seconds while self-checkout is running on this machine.';
+ const a=((await tx('readonly',s=>s.getAll()))||[]).sort((x,y)=>y.s-x.s).slice(0,3);$('#fl').innerHTML=a.map(c=>(u=>`<p class="mut">${fmt(c.s)}</p><video controls playsinline src="${u}" style="width:100%;border-radius:12px"></video><a href="${u}" download="footage-${c.s}.webm">⬇ Save clip</a>`)(URL.createObjectURL(c.b))).join('')})}
 function tProd(){startCam();$('#tb').innerHTML=`<div class="card"><h3>Add a product</h3><div class="camwrap sm"><video class="live" autoplay muted playsinline></video><div class="zone"></div></div><p class="mut">Place the product inside the box (the same spot customers will use), then take its photo.</p>${draft?`<img class="th" src="${draft.th}" alt=""><input id="pn_" placeholder="Product name"><input id="pp_" placeholder="Price e.g. 2.50" inputmode="decimal"><button class="big" onclick="saveP()">Save product</button><button onclick="draft=null;tProd();attach()">Retake</button>`:`<button class="big" onclick="snap()">📸 Take product photo</button>`}</div>`+S.products.map(p=>`<div class="card row"><img class="th" src="${p.th}" alt=""><b>${esc(p.name)}</b><span>${money(p.price)}</span><button onclick="S.products=S.products.filter(x=>x.id!='${p.id}');save();tProd();attach()">Delete</button></div>`).join('')}
 function snap(){if(!cam.videoWidth){toast('Camera not ready');return}const sig=sigOf();crop(120);draft={sig,th:cv.toDataURL('image/jpeg',.7)};tProd();attach()}
 function saveP(){const n=$('#pn_').value.trim(),p=parseFloat($('#pp_').value);if(!n||!(p>=0)){toast('Enter a name and a price');return}S.products.push({id:uid(),name:n,price:p,sig:draft.sig,th:draft.th});draft=null;save();tProd();attach();toast('Product added')}
@@ -237,7 +245,7 @@ function stopScan(){clearInterval(pscan);pstream&&pstream.getTracks().forEach(t=
 
 /* ---------- routing ---------- */
 /* kiosk lock: once self-checkout starts, only a valid staff QR scan can leave it */
-function enterKiosk(e){if(e&&e.preventDefault)e.preventDefault();kioskOn=true;try{document.documentElement.requestFullscreen().catch(()=>{})}catch(x){}startCam();location.hash='kiosk'}
+function enterKiosk(e){if(e&&e.preventDefault)e.preventDefault();kioskOn=true;try{navigator.storage.persist()}catch(x){}try{document.documentElement.requestFullscreen().catch(()=>{})}catch(x){}startCam();location.hash='kiosk'}
 function exitKiosk(){kioskOn=false;staffOn=false;$('#smenu').hidden=true;viaKiosk=false;authed=false;if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});location.hash='home'}
 addEventListener('beforeunload',e=>{if(kioskOn){e.preventDefault();e.returnValue=''}});
 addEventListener('contextmenu',e=>{if(kioskOn)e.preventDefault()});

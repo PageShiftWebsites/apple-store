@@ -32,7 +32,7 @@ input{font:inherit;width:100%;padding:12px;border-radius:10px;border:1px solid v
 .tot{font-size:22px;border:0}
 .camwrap{position:relative;aspect-ratio:4/3;background:#000;border-radius:12px;overflow:hidden}
 .camwrap.sm{max-width:420px}.camwrap video,video.live{width:100%;height:100%;object-fit:cover;display:block;border-radius:12px;background:#000}
-.zone{position:absolute;left:50%;top:25%;height:50%;aspect-ratio:1;transform:translateX(-50%);border:3px dashed #fff;border-radius:14px;box-shadow:0 0 0 999px rgba(0,0,0,.25);pointer-events:none}
+.zone{position:absolute;left:50%;top:15%;height:70%;aspect-ratio:1;transform:translateX(-50%);border:3px dashed #fff;border-radius:14px;box-shadow:0 0 0 999px rgba(0,0,0,.25);pointer-events:none}
 #help,#pcb{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:50;background:var(--bad);color:#fff;border:0;border-radius:99px;padding:16px 22px;font-size:18px;box-shadow:0 6px 20px rgba(0,0,0,.3)}
 #attract,#lock,#fsb,#hs,#smenu{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px}
 #pcb{left:16px;right:auto;background:var(--ac)}
@@ -40,6 +40,7 @@ input{font:inherit;width:100%;padding:12px;border-radius:10px;border:1px solid v
 button.sec{background:var(--card)!important;color:var(--ink)!important;border:1px solid var(--bd)!important}
 .qv{max-width:min(560px,90vw);margin:12px auto;border:3px solid #fff;border-radius:14px;overflow:hidden;background:#000}
 .qv video.live{height:auto;max-height:45vh;object-fit:contain;transform:scaleX(-1);border-radius:0;display:block}
+.pg{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}.pg button{text-align:center}
 .badge{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.65);color:#fff;border-radius:99px;padding:3px 10px;font-size:13px}
 #fsb{background:#0d1324;color:#fff;z-index:60;cursor:pointer}
 #attract{background:linear-gradient(135deg,#1e3a8a,#7c3aed);color:#fff;animation:f 1s}
@@ -66,8 +67,9 @@ summary{cursor:pointer}.demo{margin-top:8px;color:var(--mut)}
   <section class="card">
    <div class="camwrap"><video id="cam" class="live" autoplay muted playsinline></video><div class="zone"></div><div id="rec" class="badge">⚪ Camera starting…</div></div>
    <div id="camerr" hidden class="card" style="margin-top:10px"><p id="cammsg"></p><button class="big" onclick="startCam()">Enable camera &amp; microphone</button></div>
+   <p id="vh" class="c" style="font-weight:600;margin:8px 0">Place an item in the box</p><button class="big sec" onclick="if(step=='scan'){step='pick';K_()}">🔍 Can’t scan? Pick your item</button>
    <h2>Scan your items</h2>
-   <p class="mut">Hold each item inside the box so the camera can see it. Wait for the beep, then remove it and scan the next one.</p><p class="mut">🔴 This checkout records video and audio for security.</p>
+   <p class="mut">Place each item flat inside the box and take your hand away. Wait for the beep, then remove it before scanning the next one.</p><p class="mut">🔴 This checkout records video and audio for security.</p>
   </section>
   <section class="card" id="kside"></section>
  </div>
@@ -119,7 +121,7 @@ async function startCam(){if(stream){attach();if(kioskOn&&!recOn){recOn=true;rec
  const g=a=>navigator.mediaDevices.getUserMedia({video:{width:640,height:480},audio:a});
  try{if(!navigator.mediaDevices)throw{name:'Insecure'};
   try{stream=await g(true)}catch(e){if(!['NotAllowedError','NotFoundError','NotReadableError','OverconstrainedError'].includes(e.name))throw e;stream=await g(false);toast('No microphone access — recording video only')}
-  $('#camerr').hidden=true;attach();if(kioskOn){recOn=true;record()}setInterval(tick,500)}
+  $('#camerr').hidden=true;attach();if(kioskOn){recOn=true;record()}setInterval(tick,400)}
  catch(e){camErr(e)}camBusy=false}
 function camErr(e){const n=e&&e.name;let m='The camera and microphone are needed for the checkout.';
  if(n=='NotAllowedError')m='Camera/microphone access is blocked. Click the camera or lock icon in the address bar, set Camera and Microphone to Allow, then press the button below.';
@@ -132,7 +134,7 @@ function attach(){$$('video.live').forEach(v=>{if(stream&&v.srcObject!==stream){
 /* ---------- vision helpers ---------- */
 const cv=document.createElement('canvas'),qc=document.createElement('canvas'),mc=document.createElement('canvas');
 const qx=qc.getContext('2d',{willReadFrequently:true}),mx=mc.getContext('2d',{willReadFrequently:true});mc.width=16;mc.height=12;
-function crop(n){const v=cam,s=Math.min(v.videoWidth,v.videoHeight)*.5;cv.width=cv.height=n;const x=cv.getContext('2d',{willReadFrequently:true});x.drawImage(v,(v.videoWidth-s)/2,(v.videoHeight-s)/2,s,s,0,0,n,n);return x}
+function crop(n,v=cam){const s=Math.min(v.videoWidth,v.videoHeight)*.7;cv.width=cv.height=n;const x=cv.getContext('2d',{willReadFrequently:true});x.drawImage(v,(v.videoWidth-s)/2,(v.videoHeight-s)/2,s,s,0,0,n,n);return x}
 function sigOf(){const d=crop(12).getImageData(0,0,12,12).data,a=[];for(let i=0;i<d.length;i+=4)a.push(d[i],d[i+1],d[i+2]);const m=a.reduce((x,y)=>x+y,0)/a.length;return a.map(v=>Math.round(v-m))}
 const dist=(a,b)=>a.reduce((s,v,i)=>s+Math.abs(v-b[i]),0)/a.length;
 function readQR(v){if(!v.videoWidth||!window.jsQR)return null;const w=Math.min(v.videoWidth,960),h=Math.round(v.videoHeight*w/v.videoWidth);qc.width=w;qc.height=h;qx.drawImage(v,0,0,w,h);const r=jsQR(qx.getImageData(0,0,w,h).data,w,h,{inversionAttempts:'attemptBoth'});return r&&r.data}
@@ -140,13 +142,11 @@ function readQR(v){if(!v.videoWidth||!window.jsQR)return null;const w=Math.min(v
 /* ---------- kiosk loop ---------- */
 let streak=0,cur=null,armed=true,prev=null,mot=0,lastScan=0,lastAlertT=0,lastAct=Date.now(),si=0;
 function tick(){if(!stream||!cam.videoWidth)return;
- const q=readQR(cam);setQS(q);if(kioskOn&&okAdminQR(q)){if(view=='kiosk'&&!staffOn&&Date.now()-staffT>4000){staffOn=true;authed=true;viaKiosk=true;beep(1200);SM_()}return}
+ let q=null;if(qt++%2==0){q=readQR(cam);setQS(q)}if(kioskOn&&okAdminQR(q)){if(view=='kiosk'&&!staffOn&&Date.now()-staffT>4000){staffOn=true;authed=true;viaKiosk=true;beep(1200);SM_()}return}
  if(kioskOn&&view=='kiosk'&&step=='scan'&&!isLocked()&&q&&q.startsWith('SCADD:'))manualAdd(q);
  if(view!='kiosk'||isLocked()||(step!='scan'&&step!='price'))return;
- if(S.products.length){const s=sigOf();let best=null,bd=1e9,sd=1e9;
-  for(const p of S.products){const d=dist(s,p.sig);if(d<bd){sd=bd;bd=d;best=p}else if(d<sd)sd=d}
-  if(bd<18&&sd-bd>4){if(cur==best.id)streak++;else{cur=best.id;streak=1}if(streak>=3&&(armed||step=='price')){armed=false;step=='price'?showPrice(best):addItem(best)}}
-  else{streak=0;cur=null;if(bd>26){armed=true;if(step=='price'&&$('#pc'))$('#pc').innerHTML='<p class="mut">Hold an item in the box…</p>'}}}
+ if(q&&q.startsWith('SCITEM:'))itemQR(q);
+ vision();
  mx.drawImage(cam,0,0,16,12);const d=mx.getImageData(0,0,16,12).data;let m=0;
  if(prev)for(let i=0;i<d.length;i+=4)m+=Math.abs(d[i]+d[i+1]+d[i+2]-prev[i]-prev[i+1]-prev[i+2])/3;prev=d.slice();m/=192;
  mot=m>14?mot+1:0;
@@ -158,13 +158,52 @@ function alertNew(type){if(type=='help'&&S.alerts.some(a=>a.status=='open'&&a.ty
 /* staff menu on the checkout (opens when a valid staff QR is scanned) */
 function SM_(){S.alerts.forEach(a=>{if(a.type=='help'&&a.status=='open')a.att=true});save();
  const h=S.alerts.some(a=>a.type=='help'&&a.status=='open'),o=S.alerts.filter(a=>a.status=='open'&&a.type!='help').length,sc=step=='scan',el=$('#smenu');el.hidden=false;
- el.innerHTML=`<div class="card" style="max-width:480px;width:100%"><h2>🔐 Staff menu</h2>${h?'<p class="mut">A customer asked for help.</p><button class="big ok" onclick="smDone(true)">✅ Finished helping — resume checkout</button>':''}<button class="big sec" onclick="smDone(false)">← Back to checkout${h?' (keep help open)':''}</button><button class="big sec" onclick="smGo('alerts')">🚨 Alerts &amp; footage${o?' ('+o+')':''}</button>${sc?'<button class="big sec" onclick="smAdd()">➕ Add an item to the basket</button><div id="smx"></div>':''}<button class="big sec" onclick="smGo('prod')">🛠 Staff portal (products, live view, receipts)</button><button class="big sec" onclick="exitKiosk()">⏏ Exit self-checkout mode</button></div>`}
+ el.innerHTML=`<div class="card" style="max-width:480px;width:100%"><h2>🔐 Staff menu</h2>${h?'<p class="mut">A customer asked for help.</p><button class="big ok" onclick="smDone(true)">✅ Finished helping — resume checkout</button>':''}<button class="big sec" onclick="smDone(false)">← Back to checkout${h?' (keep help open)':''}</button><button class="big sec" onclick="smGo('alerts')">🚨 Alerts &amp; footage${o?' ('+o+')':''}</button>${sc?'<button class="big sec" onclick="smAdd()">➕ Add an item to the basket</button><div id="smx"></div>':''}<button class="big sec" onclick="bg=null;toast('Camera recalibrated')">📷 Recalibrate camera (empty the box first)</button><button class="big sec" onclick="smGo('prod')">🛠 Staff portal (products, live view, receipts)</button><button class="big sec" onclick="exitKiosk()">⏏ Exit self-checkout mode</button></div>`}
 function smAdd(){$('#smx').innerHTML=S.products.map(p=>`<button onclick="smPut('${p.id}')">+ ${esc(p.name)} ${money(p.price)}</button>`).join('')+`<input id="sn" placeholder="Other item name"><input id="sp" placeholder="Price e.g. 2.50" inputmode="decimal"><button class="ok" onclick="smPut()">Add custom item</button>`}
 function smPut(id){let p;if(id)p=S.products.find(x=>x.id==id);else{const n=$('#sn').value.trim(),pr=parseFloat($('#sp').value);if(!n||!(pr>=0)){toast('Enter a name and a price');return}p={id:'m'+uid(),name:n.slice(0,24),price:pr}}
  if(p){const b=basket.find(x=>x.id==p.id);b?b.qty++:basket.push({id:p.id,name:p.name,price:p.price,qty:1});lastScan=lastAct=Date.now();toast('Added '+p.name);K_()}}
 function smDone(r){if(r)S.alerts.forEach(a=>{if(a.type=='help'&&a.status=='open')a.status='ok'});staffOn=false;staffT=Date.now();authed=false;viaKiosk=false;$('#smenu').hidden=true;save();toast(r?'Help finished — checkout resumed':'Back to checkout')}
 function smGo(t){tab=t;staffOn=false;staffT=Date.now();$('#smenu').hidden=true;location.hash='admin'}
 function cancelHelp(){S.alerts.forEach(a=>{if(a.type=='help'&&a.status=='open')a.status='ok'});save()}
+/* ---- product recognition: background subtraction + colour/shape features, several samples per product ---- */
+const G=24,TH=.65,MG=.06;let bg=null,vhT='',miss=0,qt=0,lq='',lqt=0,abg=null;
+function zoneData(v){const s=Math.min(v.videoWidth,v.videoHeight)*.7;cv.width=cv.height=G;const x=cv.getContext('2d',{willReadFrequently:true});x.drawImage(v,(v.videoWidth-s)/2,(v.videoHeight-s)/2,s,s,0,0,G,G);return x.getImageData(0,0,G,G).data}
+const toBg=d=>{const b=new Float32Array(G*G*3);for(let i=0;i<G*G;i++){b[i*3]=d[i*4];b[i*3+1]=d[i*4+1];b[i*3+2]=d[i*4+2]}return b};
+function fgOf(d,b){const m=new Uint8Array(G*G);let c=0;for(let i=0;i<G*G;i++){const k=i*4,j=i*3;if((Math.abs(d[k]-b[j])+Math.abs(d[k+1]-b[j+1])+Math.abs(d[k+2]-b[j+2]))/3>28){m[i]=1;c++}}return{m,c,f:c/(G*G)}}
+function feat(d,m){let x0=G,x1=-1,y0=G,y1=-1,n=0;const v=new Array(8).fill(0),h=new Array(12).fill(0);
+ for(let y=0;y<G;y++)for(let x=0;x<G;x++){const i=y*G+x;if(!m[i])continue;n++;if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;
+  const k=i*4,r=d[k],g=d[k+1],b=d[k+2],mx=Math.max(r,g,b),mn=Math.min(r,g,b),l=(r+g+b)/3,p=Math.min(l/255*7,7),lo=Math.floor(p),fr=p-lo;
+  v[lo]+=1-fr;if(lo<7)v[lo+1]+=fr;
+  if(mx>50&&(mx-mn)/mx>.25){const hu=mx==r?((g-b)/(mx-mn)+6)%6:mx==g?(b-r)/(mx-mn)+2:(r-g)/(mx-mn)+4,q=hu*2,a=Math.floor(q)%12,fq=q-Math.floor(q);h[a]+=1-fq;h[(a+1)%12]+=fq}}
+ if(n<10)return null;
+ const bw=x1-x0+1,bh=y1-y0+1,S6=6,mm=[],aa=[];let am=0;
+ for(let gy=0;gy<S6;gy++)for(let gx=0;gx<S6;gx++){const xx=x0+Math.min(bw-1,Math.floor((gx+.5)*bw/S6)),yy=y0+Math.min(bh-1,Math.floor((gy+.5)*bh/S6)),i=yy*G+xx;mm.push(m[i]);const l=(d[i*4]+d[i*4+1]+d[i*4+2])/765;aa.push(l);am+=l}
+ am/=aa.length;const R=a=>a.map(z=>Math.round(z*1000)/1000);
+ return{v:R(v.map(z=>z/n)),h:R(h.map(z=>z/n)),m:mm,a:R(aa.map(z=>z-am)),r:Math.round(bw/bh*100)/100,n:Math.round(n/(G*G)*100)/100}}
+const L1=(a,b)=>a.reduce((s,z,i)=>s+Math.abs(z-b[i]),0);
+function sim(a,b){const dv=L1(a.v,b.v)/2,dh=L1(a.h,b.h)/2,dm=L1(a.m,b.m)/a.m.length,da=Math.min(1,L1(a.a,b.a)/a.a.length*4),dr=Math.min(1,Math.abs(Math.log(a.r/b.r))),dn=Math.min(1,Math.abs(a.n-b.n)*2);return 1-(.25*dv+.25*dh+.2*dm+.1*da+.1*dr+.1*dn)}
+function bestOf(ft){let best=null,bs=0,second=0;for(const p of S.products){if(!p.s||!p.s.length)continue;let s=0;for(const z of p.s)s=Math.max(s,sim(ft,z));if(s>bs){second=bs;bs=s;best=p}else if(s>second)second=s}return{best,bs,second}}
+function vh(t){if(t!==vhT){vhT=t;const e=$('#vh');if(e)e.textContent=t}}
+function vision(){const d=zoneData(cam);if(!bg){bg=toBg(d);return}
+ const{m,f}=fgOf(d,bg);
+ if(f<.04){for(let i=0;i<G*G;i++)for(let k=0;k<3;k++)bg[i*3+k]=bg[i*3+k]*.9+d[i*4+k]*.1;armed=true;streak=0;cur=null;miss=0;vh('Place an item in the box');const e=$('#pc');if(step=='price'&&e)e.innerHTML='<p class="mut">Hold an item in the box…</p>';return}
+ lastAct=Date.now();const ft=feat(d,m);if(!ft)return;
+ const{best,bs,second}=bestOf(ft);
+ if(best&&bs>=TH&&bs-second>=MG){miss=0;if(cur==best.id)streak++;else{cur=best.id;streak=1}
+  if(step=='price'){vh('Seeing: '+best.name);if(streak>=2)showPrice(best)}
+  else if(armed){vh('Seeing: '+best.name);if(streak>=3){armed=false;addItem(best)}}
+  else vh('✅ '+best.name+' added — take it out of the box')}
+ else{streak=Math.max(0,streak-.5);
+  if(armed){miss++;vh(!S.products.some(p=>p.s&&p.s.length)?'No camera photos of products yet — tap “Can’t scan? Pick your item”':miss>7?'Can’t recognise that. Turn it a little, or tap “Can’t scan? Pick your item”':'Looking at your item… hold it still');if(miss>25){bg=toBg(d);miss=0}}}}
+function itemQR(q){const p=S.products.find(x=>'SCITEM:'+x.id==q);if(!p)return;const n=Date.now(),rep=q==lq&&n-lqt<2500;lq=q;lqt=n;if(rep||(!armed&&step!='price'))return;if(step=='price')showPrice(p);else{armed=false;addItem(p)}}
+function pickIt(id){const p=S.products.find(x=>x.id==id);if(p){step='scan';addItem(p)}}
+function lbl(id){const p=S.products.find(x=>x.id==id),e=$('#lq');if(!p||!e)return;e.hidden=false;e.innerHTML='<h3>'+esc(p.name)+'</h3><div id="lqq" style="display:inline-block;background:#fff;padding:12px;border-radius:12px"></div><p class="mut">Print this or draw it on the item. Holding it up to the checkout camera adds the item instantly — the most reliable way to scan.</p>';mkQR($('#lqq'),'SCITEM:'+p.id,200);e.scrollIntoView({behavior:'smooth'})}
+const av=()=>{const v=$('#tb video.live');return v&&v.videoWidth?v:cam};
+function capBg(){const v=av();if(!v.videoWidth){toast('Camera not ready');return}abg=toBg(zoneData(v));toast('Empty box captured');tProd();attach()}
+async function capProd(){const v=av();if(!abg){toast('First capture the empty box');return}const S2=[];let th=null;const b=$('#capb');
+ for(let i=0;i<10;i++){if(b)b.textContent='Hold it in the box and turn it slowly… '+(10-i);const d=zoneData(v),{m,f}=fgOf(d,abg);if(f>=.04){const ft=feat(d,m);if(ft){S2.push(ft);if(!th){crop(120,v);th=cv.toDataURL('image/jpeg',.7)}}}await new Promise(r=>setTimeout(r,300))}
+ if(S2.length<4){toast('Couldn’t see the item clearly — empty the box, capture it again, then retry');tProd();attach();return}
+ draft={samples:S2,th};tProd();attach()}
 function setQS(q){let m=q?(okAdminQR(q)?'✅ Staff code recognised':'⚠️ A QR code was seen, but it isn’t the staff code'):'Looking for a QR code…';if(!window.jsQR)m='⚠️ The QR reader didn’t load — check the internet connection';$$('.qs').forEach(e=>e.textContent=m)}
 async function footStat(){const a=(await tx('readonly',s=>s.getAll()))||[];return{n:a.length,mb:a.reduce((x,c)=>x+c.b.size,0)/1048576,first:a.length?Math.min(...a.map(c=>c.s)):0,last:a.length?Math.max(...a.map(c=>c.e)):0}}
 async function footUpd(){const f=await footStat(),e=$('#rec');if(e)e.textContent='🔴 REC · '+f.n+' clips ('+f.mb.toFixed(0)+' MB) saved on this device'}
@@ -194,6 +233,7 @@ function sendPhone(){if(phone.length<6){toast('Please enter your full phone numb
 function done(){step='thanks';K_();setTimeout(()=>{if(step=='thanks'){basket=[];step='scan';phone='';lastR=null;K_()}},4500)}
 function K_(){const el=$('#kside');let h='';
  if(step=='scan')h=`<h2>Your basket</h2>${basket.length?basket.map(b=>`<div class="row"><span>${esc(b.name)} ×${b.qty}</span><b>${money(b.price*b.qty)}</b></div>`).join(''):'<p class="mut">Nothing scanned yet.</p>'}<div class="row tot"><span>Total</span><b>${money(total())}</b></div><button class="big" ${basket.length?'':'disabled'} onclick="pay()">Pay now</button>`;
+ else if(step=='pick')h=`<h2>Pick your item</h2><div class="pg">${S.products.map(p=>`<button onclick="pickIt('${p.id}')"><img class="th" src="${p.th}" alt=""><br>${esc(p.name)}<br><b>${money(p.price)}</b></button>`).join('')||'<p class="mut">No products yet.</p>'}</div><button class="big" onclick="step='scan';K_()">Back to scanning</button>`;
  else if(step=='price')h=`<h2>🏷️ Price check</h2><p>Hold an item inside the box and its price will appear here.</p><div id="pc" class="c card"><p class="mut">${S.products.length?'Hold an item in the box…':'No products have been set up yet.'}</p></div><button class="big" onclick="step='scan';K_()">Back to scanning</button>`;
  else if(step=='paid')h=`<h2 style="color:var(--ok)">✅ Payment successful!</h2>${rLines(lastR)}<div class="row tot"><span>Total</span><b>${money(lastR.tot)}</b></div><small>Receipt ${lastR.id} saved on this checkout.</small><h2 style="margin-top:14px">Do you have our app?</h2><button class="yn ok" onclick="step='phoneq';K_()">Yes</button><button class="yn" onclick="done()">No</button>`;
  else if(step=='phoneq')h=`<h2>Do you have your phone with you?</h2><button class="yn ok" onclick="step='qr';K_()">Yes</button><button class="yn" onclick="step='keypad';K_()">No</button>`;
@@ -203,10 +243,10 @@ function K_(){const el=$('#kside');let h='';
  el.innerHTML=h;if(step=='qr')mkQR($('#qrbox'),rPayload(lastR),220);
  $('#demo').innerHTML=S.products.map(p=>`<button onclick="addItem(S.products.find(x=>x.id=='${p.id}'))">+ ${esc(p.name)}</button>`).join('')+`<button onclick="alertNew('unscanned')">Simulate unscanned item</button><button onclick="alertNew('theft')">Simulate theft</button>`}
 ['pointerdown','keydown'].forEach(e=>addEventListener(e,()=>{lastAct=Date.now();$('#attract').hidden=true}));
-function slide(){const L=S.products.length?S.products.map(p=>`<img src="${p.th}" alt=""><h1>${esc(p.name)}</h1><h2>${money(p.price)}</h2>`):['<h1>Welcome 👋</h1><h2>Scan your items, pay, and go</h2>'];$('#attract').innerHTML=`<div class="slide">${L[si++%L.length]}<p>Touch the screen to start</p></div>`}
+function slide(){const L=S.products.length?S.products.map(p=>`<img src="${p.th}" alt=""><h1>${esc(p.name)}</h1><h2>${money(p.price)}</h2>`):['<h1>Welcome 👋</h1><h2>Scan your items, pay, and go</h2>'];$('#attract').innerHTML=`<div class="slide">${L[si++%L.length]}<p>Touch the screen or place an item in the box to start</p></div>`}
 setInterval(()=>{const a=$('#attract');if(view=='kiosk'&&step=='scan'&&!isLocked()&&Date.now()-lastAct>5000){if(a.hidden){a.hidden=false;slide()}}else a.hidden=true},500);
 setInterval(()=>{if(!$('#attract').hidden)slide()},3000);
-setInterval(()=>{if(step=='price'&&Date.now()-lastAct>15000){step='scan';K_()}},1000);
+setInterval(()=>{if((step=='price'||step=='pick')&&Date.now()-lastAct>15000){step='scan';K_()}},1000);
 
 /* ---------- admin ---------- */
 function alog(){if($('#pw').value===PW){authed=true;tab='qr';A_()}else{toast('Wrong password');$('#pw').value=''}}
@@ -224,9 +264,10 @@ function resolve(id){const a=S.alerts.find(x=>x.id==id);a.status='ok';save();ope
 function tLive(){startCam();$('#tb').innerHTML=`<div class="card"><h3>Live camera</h3><video class="live" autoplay muted playsinline></video><h3>Footage saved on this device</h3><p id="fs" class="mut">Checking…</p><div id="fl"></div><button onclick="tLive();attach()">Refresh</button></div>`;footStat().then(async f=>{const sp=navigator.storage&&navigator.storage.persisted?await navigator.storage.persisted():false;
  $('#fs').innerHTML=f.n?`${f.n} clips · ${f.mb.toFixed(0)} MB · ${fmt(f.first)} → ${fmt(f.last)}<br>Storage protected from automatic deletion: ${sp?'yes':'no'}`:'No footage saved yet. Clips are saved every 10 seconds while self-checkout is running on this machine.';
  const a=((await tx('readonly',s=>s.getAll()))||[]).sort((x,y)=>y.s-x.s).slice(0,3);$('#fl').innerHTML=a.map(c=>(u=>`<p class="mut">${fmt(c.s)}</p><video controls playsinline src="${u}" style="width:100%;border-radius:12px"></video><a href="${u}" download="footage-${c.s}.webm">⬇ Save clip</a>`)(URL.createObjectURL(c.b))).join('')})}
-function tProd(){startCam();$('#tb').innerHTML=`<div class="card"><h3>Add a product</h3><div class="camwrap sm"><video class="live" autoplay muted playsinline></video><div class="zone"></div></div><p class="mut">Place the product inside the box (the same spot customers will use), then take its photo.</p>${draft?`<img class="th" src="${draft.th}" alt=""><input id="pn_" placeholder="Product name"><input id="pp_" placeholder="Price e.g. 2.50" inputmode="decimal"><button class="big" onclick="saveP()">Save product</button><button onclick="draft=null;tProd();attach()">Retake</button>`:`<button class="big" onclick="snap()">📸 Take product photo</button>`}</div>`+S.products.map(p=>`<div class="card row"><img class="th" src="${p.th}" alt=""><b>${esc(p.name)}</b><span>${money(p.price)}</span><button onclick="S.products=S.products.filter(x=>x.id!='${p.id}');save();tProd();attach()">Delete</button></div>`).join('')}
+function tProd(){startCam();$('#tb').innerHTML=`<div class="card"><h3>Add a product</h3><div class="camwrap sm"><video class="live" autoplay muted playsinline></video><div class="zone"></div></div>${draft?`<img class="th" src="${draft.th}" alt=""><p class="mut">✅ ${draft.samples.length} photos captured</p><input id="pn_" placeholder="Product name"><input id="pp_" placeholder="Price e.g. 2.50" inputmode="decimal"><button class="big" onclick="saveP()">Save product</button><button onclick="draft=null;tProd();attach()">Retake</button>`:`<p class="mut">1. Take everything out of the box, then tap ①.<br>2. Put the product flat in the box and tap ②. Turn it slowly for 3 seconds so the checkout learns it from several angles.</p><button class="big" onclick="capBg()">${abg?'✅ ':''}① Capture the empty box</button><button class="big" id="capb" onclick="capProd()" ${abg?'':'disabled'}>② Capture the product</button>`}</div><div id="lq" class="card c" hidden></div>`+S.products.map(p=>`<div class="card row"><img class="th" src="${p.th}" alt=""><b>${esc(p.name)}${p.s?'':' ⚠️ re-capture needed'}</b><span>${money(p.price)}</span><span><button onclick="lbl('${p.id}')">QR label</button><button onclick="S.products=S.products.filter(x=>x.id!='${p.id}');save();tProd();attach()">Delete</button></span></div>`).join('')}
+function tProdOld(){startCam();$('#tb').innerHTML=`<div class="card"><h3>Add a product</h3><div class="camwrap sm"><video class="live" autoplay muted playsinline></video><div class="zone"></div></div><p class="mut">Place the product inside the box (the same spot customers will use), then take its photo.</p>${draft?`<img class="th" src="${draft.th}" alt=""><input id="pn_" placeholder="Product name"><input id="pp_" placeholder="Price e.g. 2.50" inputmode="decimal"><button class="big" onclick="saveP()">Save product</button><button onclick="draft=null;tProd();attach()">Retake</button>`:`<button class="big" onclick="snap()">📸 Take product photo</button>`}</div>`+S.products.map(p=>`<div class="card row"><img class="th" src="${p.th}" alt=""><b>${esc(p.name)}</b><span>${money(p.price)}</span><button onclick="S.products=S.products.filter(x=>x.id!='${p.id}');save();tProd();attach()">Delete</button></div>`).join('')}
 function snap(){if(!cam.videoWidth){toast('Camera not ready');return}const sig=sigOf();crop(120);draft={sig,th:cv.toDataURL('image/jpeg',.7)};tProd();attach()}
-function saveP(){const n=$('#pn_').value.trim(),p=parseFloat($('#pp_').value);if(!n||!(p>=0)){toast('Enter a name and a price');return}S.products.push({id:uid(),name:n,price:p,sig:draft.sig,th:draft.th});draft=null;save();tProd();attach();toast('Product added')}
+function saveP(){const n=$('#pn_').value.trim(),p=parseFloat($('#pp_').value);if(!n||!(p>=0)){toast('Enter a name and a price');return}S.products.push({id:uid(),name:n,price:p,s:draft.samples,th:draft.th});draft=null;save();tProd();attach();toast('Product added')}
 function tRec(){$('#tb').innerHTML=S.receipts.length?S.receipts.map(rHTML).join(''):'<p class="mut">No receipts yet.</p>'}
 const rHTML=r=>`<details class="card"><summary><b>${fmt(r.t)}</b> — ${money(r.tot)}</summary>${rLines(r)}<div class="row tot"><span>Total</span><b>${money(r.tot)}</b></div><small>Receipt ${esc(r.id)}</small></details>`;
 
@@ -245,7 +286,7 @@ function stopScan(){clearInterval(pscan);pstream&&pstream.getTracks().forEach(t=
 
 /* ---------- routing ---------- */
 /* kiosk lock: once self-checkout starts, only a valid staff QR scan can leave it */
-function enterKiosk(e){if(e&&e.preventDefault)e.preventDefault();kioskOn=true;try{navigator.storage.persist()}catch(x){}try{document.documentElement.requestFullscreen().catch(()=>{})}catch(x){}startCam();location.hash='kiosk'}
+function enterKiosk(e){if(e&&e.preventDefault)e.preventDefault();kioskOn=true;bg=null;try{navigator.storage.persist()}catch(x){}try{document.documentElement.requestFullscreen().catch(()=>{})}catch(x){}startCam();location.hash='kiosk'}
 function exitKiosk(){kioskOn=false;staffOn=false;$('#smenu').hidden=true;viaKiosk=false;authed=false;if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});location.hash='home'}
 addEventListener('beforeunload',e=>{if(kioskOn){e.preventDefault();e.returnValue=''}});
 addEventListener('contextmenu',e=>{if(kioskOn)e.preventDefault()});
@@ -255,6 +296,6 @@ function route(){let v=location.hash.slice(1)||'home';if(!['home','kiosk','admin
  if(v=='kiosk'&&!kioskOn){location.hash='home';return}
  view=v;document.body.classList.toggle('kon',kioskOn);
  $$('.view').forEach(m=>m.hidden=m.id!=view);if(view!='portal')stopScan();upd();
- if(view=='kiosk'){startCam();K_()}else if(view=='admin')A_();else if(view=='portal')P_()}
+ if(view=='kiosk'){bg=null;startCam();K_()}else if(view=='admin')A_();else if(view=='portal')P_()}
 addEventListener('hashchange',route);route();
 </script></body></html>
